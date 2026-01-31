@@ -1,0 +1,36 @@
+version: '3'
+services:
+  poast-relay:
+    build: .
+    container_name: poast-relay
+    restart: unless-stopped
+    environment:
+      - INBOUND_PATH_UUID=${INBOUND_PATH_UUID}
+      - INBOUND_AUTH_TOKEN=${INBOUND_AUTH_TOKEN}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - GATEWAY_URL=${GATEWAY_URL}
+      - GATEWAY_TOKEN=${GATEWAY_TOKEN}
+      - TARGET_SESSION_KEY=${TARGET_SESSION_KEY}
+      - GHOST_MODE=${GHOST_MODE:-false}
+      - MAX_UPLOAD_SIZE_MB=${MAX_UPLOAD_SIZE_MB:-100}
+      - GROQ_TIMEOUT_SECONDS=${GROQ_TIMEOUT_SECONDS:-60}
+      - GATEWAY_TIMEOUT_SECONDS=${GATEWAY_TIMEOUT_SECONDS:-10}
+      - GATEWAY_RETRY_ATTEMPTS=${GATEWAY_RETRY_ATTEMPTS:-3}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.poast-relay.rule=Host(`poast.richardkemp.uk`)"
+      - "traefik.http.routers.poast-relay.entrypoints=http"
+      - "traefik.http.services.poast-relay.loadbalancer.server.port=8000"
+    networks:
+      - traefik
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+networks:
+  traefik:
+    external:
+      name: traefik
