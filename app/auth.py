@@ -1,5 +1,6 @@
 from fastapi import HTTPException, status, Depends
-from fastapi.security import HTTPBearer, HTTPAuthCredentials
+from fastapi.security import HTTPBearer
+from fastapi.security.http import HTTPAuthorizationCredentials
 from app.config import Settings
 
 security = HTTPBearer()
@@ -13,7 +14,7 @@ def get_settings() -> Settings:
 
 
 def verify_token(
-    credentials: HTTPAuthCredentials = Depends(security),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
     settings: Settings = Depends(get_settings),
 ) -> None:
     """
