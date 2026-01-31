@@ -36,6 +36,11 @@ wheels/
 .env.local
 .env.*.local
 
+# Local customizations
+gateway-proxy.local.js
+gateway-proxy.local.service
+*.local.*
+
 
 # Testing
 .pytest_cache/

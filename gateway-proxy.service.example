@@ -1,0 +1,20 @@
+[Unit]
+Description=Gateway Proxy (expose localhost gateway on all interfaces)
+After=clawdbot-gateway.service
+Wants=clawdbot-gateway.service
+
+[Service]
+Type=simple
+# Update path to your local gateway-proxy.local.js
+ExecStart=/usr/bin/node /path/to/poast-relay/gateway-proxy.local.js
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+# Optional environment variables (or hardcode in .local.js)
+# Environment=GATEWAY_HOST=127.0.0.1
+# Environment=GATEWAY_PORT=18789
+# Environment=PROXY_PORT=18790
+
+[Install]
+WantedBy=default.target

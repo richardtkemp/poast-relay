@@ -215,6 +215,64 @@ print(response.json())
 
 5. **Restart policy**: `unless-stopped`
 
+## Gateway Proxy
+
+When deploying poast-relay in Docker (especially with Traefik network), the Clawdbot Gateway running on `localhost:18789` is not accessible from inside containers. The `gateway-proxy.example.js` script solves this by exposing the gateway on all interfaces (0.0.0.0:18790).
+
+### Setup
+
+1. **Create local proxy script**:
+   ```bash
+   cp gateway-proxy.example.js gateway-proxy.local.js
+   chmod +x gateway-proxy.local.js
+   ```
+
+2. **Customize if needed** (or use environment variables):
+   - Edit `gateway-proxy.local.js` to set ports/host, OR
+   - Set `GATEWAY_HOST`, `GATEWAY_PORT`, `PROXY_PORT` environment variables
+
+3. **Create systemd service**:
+   ```bash
+   cp gateway-proxy.service.example gateway-proxy.local.service
+   # Edit gateway-proxy.local.service and update the ExecStart path
+   # Then:
+   cp gateway-proxy.local.service ~/.config/systemd/user/gateway-proxy.service
+   systemctl --user daemon-reload
+   systemctl --user enable gateway-proxy.service
+   systemctl --user start gateway-proxy.service
+   ```
+
+4. **Check status**:
+   ```bash
+   systemctl --user status gateway-proxy.service
+   ```
+
+5. **View logs**:
+   ```bash
+   journalctl --user -u gateway-proxy.service -f
+   ```
+
+### Configuration
+
+The proxy forwards requests from `0.0.0.0:18790` → `127.0.0.1:18789` (by default).
+
+For Docker containers on the `traefik` network, use the Docker bridge gateway IP:
+```bash
+GATEWAY_URL=http://10.0.5.1:18790/tools/invoke
+```
+
+You can find your Docker network gateway with:
+```bash
+docker network inspect traefik | jq -r '.[0].IPAM.Config[0].Gateway'
+```
+
+### Why This Is Needed
+
+- Clawdbot Gateway binds to `127.0.0.1` (localhost only) by default
+- Docker containers can't reach `127.0.0.1` on the host
+- The proxy exposes the gateway on all interfaces so containers can connect via the Docker bridge gateway IP
+- Alternative: use `host.docker.internal` (Docker Desktop only) or configure gateway to bind directly to LAN (less secure)
+
 ## Architecture Overview
 
 ```
