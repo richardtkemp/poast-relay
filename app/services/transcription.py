@@ -25,26 +25,11 @@ async def transcribe_audio(
     client = Groq(api_key=settings.groq_api_key)
 
     try:
-        # Determine MIME type from filename extension
-        ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "ogg"
-        mime_types = {
-            "flac": "audio/flac",
-            "mp3": "audio/mpeg",
-            "mp4": "audio/mp4",
-            "mpeg": "audio/mpeg",
-            "mpga": "audio/mpga",
-            "m4a": "audio/m4a",
-            "ogg": "audio/ogg",
-            "wav": "audio/wav",
-            "webm": "audio/webm",
-        }
-        mime_type = mime_types.get(ext, "audio/ogg")
-
         # Call Groq Whisper API with file tuple (filename, contents, mime_type)
+        # The Groq SDK will auto-detect the audio format from the file extension
         transcript = client.audio.transcriptions.create(
-            file=(filename, audio_file, mime_type),
+            file=(filename, audio_file),
             model="whisper-large-v3-turbo",
-            timeout=settings.groq_timeout_seconds,
         )
 
         logger.info(f"Successfully transcribed audio file: {filename}")
