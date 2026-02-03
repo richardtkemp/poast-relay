@@ -24,6 +24,8 @@ services:
       - OAUTH_TCP_FALLBACK_PORT=${OAUTH_TCP_FALLBACK_PORT:-9999}
       - OAUTH_CALLBACK_PATH=${OAUTH_CALLBACK_PATH:-/oauth/callback}
       - OAUTH_DEFAULT_TIMEOUT=${OAUTH_DEFAULT_TIMEOUT:-300.0}
+    ports:
+      - "9999:9999"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.poast-relay.rule=Host(`poast.richardkemp.uk`)"
