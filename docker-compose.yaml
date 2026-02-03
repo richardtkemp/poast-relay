@@ -16,6 +16,14 @@ services:
       - GROQ_TIMEOUT_SECONDS=${GROQ_TIMEOUT_SECONDS:-60}
       - GATEWAY_TIMEOUT_SECONDS=${GATEWAY_TIMEOUT_SECONDS:-10}
       - GATEWAY_RETRY_ATTEMPTS=${GATEWAY_RETRY_ATTEMPTS:-3}
+      # OAuth Relay (Docker mode)
+      - OAUTH_ENABLED=${OAUTH_ENABLED:-false}
+      - OAUTH_USE_TCP=${OAUTH_USE_TCP:-true}
+      - OAUTH_TCP_BIND_ADDRESS=${OAUTH_TCP_BIND_ADDRESS:-0.0.0.0}
+      - OAUTH_TCP_HOST=${OAUTH_TCP_HOST:-127.0.0.1}
+      - OAUTH_TCP_FALLBACK_PORT=${OAUTH_TCP_FALLBACK_PORT:-9999}
+      - OAUTH_CALLBACK_PATH=${OAUTH_CALLBACK_PATH:-/oauth/callback}
+      - OAUTH_DEFAULT_TIMEOUT=${OAUTH_DEFAULT_TIMEOUT:-300.0}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.poast-relay.rule=Host(`poast.richardkemp.uk`)"

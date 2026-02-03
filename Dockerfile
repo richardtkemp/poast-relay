@@ -14,8 +14,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY app ./app
 
-# Expose port
-EXPOSE 8000
+# Expose ports (8000: HTTP, 9999: OAuth TCP relay)
+EXPOSE 8000 9999
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
