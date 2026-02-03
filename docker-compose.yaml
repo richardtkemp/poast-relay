@@ -30,7 +30,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.poast-relay.rule=Host(`poast.richardkemp.uk`)"
       - "traefik.http.routers.poast-relay.entrypoints=http"
-      - "traefik.http.routers.poast-relay.middlewares=crowdsec@file"
+      - "traefik.http.routers.poast-relay.middlewares=crowdsec@docker"
       - "traefik.http.services.poast-relay.loadbalancer.server.port=8000"
     networks:
       - traefik
