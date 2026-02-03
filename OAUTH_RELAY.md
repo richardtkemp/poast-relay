@@ -8,7 +8,7 @@ The OAuth relay consists of three components:
 
 1. **Relay Server**: A FastAPI endpoint that receives OAuth callbacks from providers
 2. **Socket Coordinator**: A Unix socket (or TCP) server that manages client registrations and callback delivery
-3. **Client Library**: A public async API (`wait_for_code()`) that client applications use to wait for codes
+3. **Client Library**: A public async API (`wait_for_code()`) that client applications use to wait for codes (poast-relay/app/oauth/client.py)
 
 ```
 OAuth Provider → FastAPI Endpoint → Unix Socket Coordinator → Client Application
@@ -62,7 +62,7 @@ async def headless_oauth():
     auth_url = (
         f"https://oauth.example.com/authorize"
         f"?client_id=YOUR_CLIENT_ID"
-        f"&redirect_uri=https://poast.example.com/oauth/callback"
+        f"&redirect_uri=https://poast.richardkemp.uk/oauth/callback"
         f"&response_type=code"
         f"&scope=openid+profile+email"
         f"&state={state}"

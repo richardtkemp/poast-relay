@@ -43,7 +43,8 @@ async def wait_for_code(
     Args:
         state: State parameter for multi-flow support (or None for single-slot mode)
         timeout: Maximum time to wait in seconds (uses settings.oauth_default_timeout if None)
-        settings: Application settings (loads from environment if None)
+        settings: Application settings object with oauth_* fields. If None, creates minimal
+                 settings from OAUTH_* environment variables or sensible defaults.
 
     Returns:
         RelayResult with extracted code or raw payload
@@ -52,9 +53,18 @@ async def wait_for_code(
         OAuthTimeoutError: Timeout expired before callback arrived
         OAuthConnectionError: Failed to connect to relay coordinator
     """
-    # Load settings if not provided
+    # Load settings if not provided (OAuth client only needs oauth_* fields, not full config)
     if settings is None:
-        settings = Settings()
+        from types import SimpleNamespace
+        import os
+
+        # Create minimal settings from environment or defaults (no required field validation)
+        settings = SimpleNamespace(
+            oauth_socket_path=os.getenv("OAUTH_SOCKET_PATH", "/tmp/poast-relay-oauth.sock"),
+            oauth_tcp_fallback_port=int(os.getenv("OAUTH_TCP_FALLBACK_PORT", "9999")),
+            oauth_default_timeout=float(os.getenv("OAUTH_DEFAULT_TIMEOUT", "300.0")),
+            oauth_use_tcp=os.getenv("OAUTH_USE_TCP", "false").lower() in ("true", "1", "yes"),
+        )
 
     # Use provided timeout or settings default
     wait_timeout = timeout if timeout is not None else settings.oauth_default_timeout
