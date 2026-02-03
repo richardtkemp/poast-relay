@@ -1,7 +1,10 @@
 import logging
+from typing import Optional
 from fastapi import FastAPI, HTTPException, status
 from app.config import Settings
 from app.routes.upload import create_upload_router
+from app.oauth.coordinator import OAuthCoordinator, set_coordinator
+from app.routes.oauth import create_oauth_router
 
 # Configure logging
 logging.basicConfig(
@@ -21,9 +24,22 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# Initialize OAuth coordinator if enabled
+oauth_coordinator: Optional[OAuthCoordinator] = None
+if settings.oauth_enabled:
+    oauth_coordinator = OAuthCoordinator(settings)
+    set_coordinator(oauth_coordinator)
+    logger.info("OAuth relay enabled")
+
 # Register upload router
 upload_router = create_upload_router(settings)
 app.include_router(upload_router)
+
+# Register OAuth router if enabled
+if settings.oauth_enabled and oauth_coordinator:
+    oauth_router = create_oauth_router(settings)
+    app.include_router(oauth_router)
+    logger.info(f"OAuth callback endpoint: {settings.oauth_callback_path}")
 
 
 @app.get("/health")
@@ -41,6 +57,25 @@ async def root():
         "description": "Audio transcription proxy",
         "status": "running",
     }
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Start OAuth coordinator if enabled."""
+    if oauth_coordinator:
+        import asyncio
+
+        # Start coordinator in background task
+        asyncio.create_task(oauth_coordinator.start())
+        logger.info("OAuth coordinator starting")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Shutdown OAuth coordinator if enabled."""
+    if oauth_coordinator:
+        await oauth_coordinator.stop()
+        logger.info("OAuth coordinator stopped")
 
 
 @app.exception_handler(Exception)

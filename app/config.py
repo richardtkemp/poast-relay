@@ -19,6 +19,16 @@ class Settings(BaseSettings):
     gateway_timeout_seconds: int = 10
     gateway_retry_attempts: int = 3
 
+    # OAuth Relay Configuration (all optional with defaults)
+    oauth_enabled: bool = False
+    oauth_callback_path: str = "/oauth/callback"
+    oauth_code_keys: list[str] = ["code", "authorization_code"]
+    oauth_socket_path: str = "/tmp/poast-relay-oauth.sock"
+    oauth_tcp_fallback_port: int = 9999
+    oauth_default_timeout: float = 300.0
+    oauth_log_unmatched: bool = True
+    oauth_use_tcp: bool = False
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
@@ -37,6 +47,12 @@ class Settings(BaseSettings):
         for field in required_fields:
             if not getattr(self, field, None):
                 raise ValueError(f"Required configuration field '{field}' is not set")
+
+        if self.oauth_enabled:
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.info("OAuth relay is enabled")
 
     @property
     def max_upload_size_bytes(self) -> int:
