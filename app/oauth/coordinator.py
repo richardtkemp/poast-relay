@@ -49,7 +49,9 @@ class OAuthCoordinator:
             if self.use_tcp:
                 # TCP server for Windows or explicit TCP mode
                 self.server = await asyncio.start_server(
-                    self._handle_client, "127.0.0.1", self.settings.oauth_tcp_fallback_port
+                    self._handle_client,
+                    self.settings.oauth_tcp_bind_address,
+                    self.settings.oauth_tcp_fallback_port
                 )
                 addr = self.server.sockets[0].getsockname()
                 logger.info(f"OAuth coordinator listening on TCP {addr[0]}:{addr[1]}")

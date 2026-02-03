@@ -64,6 +64,7 @@ async def wait_for_code(
             oauth_tcp_fallback_port=int(os.getenv("OAUTH_TCP_FALLBACK_PORT", "9999")),
             oauth_default_timeout=float(os.getenv("OAUTH_DEFAULT_TIMEOUT", "300.0")),
             oauth_use_tcp=os.getenv("OAUTH_USE_TCP", "false").lower() in ("true", "1", "yes"),
+            oauth_tcp_host=os.getenv("OAUTH_TCP_HOST", "127.0.0.1"),
         )
 
     # Use provided timeout or settings default
@@ -76,7 +77,10 @@ async def wait_for_code(
         if use_tcp:
             # TCP connection
             reader, writer = await asyncio.wait_for(
-                asyncio.open_connection("127.0.0.1", settings.oauth_tcp_fallback_port),
+                asyncio.open_connection(
+                    settings.oauth_tcp_host,
+                    settings.oauth_tcp_fallback_port
+                ),
                 timeout=10.0,
             )
         else:
@@ -91,15 +95,25 @@ async def wait_for_code(
             f"Timeout connecting to OAuth coordinator (is the relay server running?)"
         )
     except ConnectionRefusedError:
-        raise OAuthConnectionError(
-            f"Cannot connect to OAuth coordinator on {settings.oauth_socket_path}"
-        )
+        if use_tcp:
+            raise OAuthConnectionError(
+                f"Cannot connect to OAuth relay at {settings.oauth_tcp_host}:{settings.oauth_tcp_fallback_port}"
+            )
+        else:
+            raise OAuthConnectionError(
+                f"Cannot connect to OAuth coordinator on {settings.oauth_socket_path}"
+            )
     except FileNotFoundError:
         raise OAuthConnectionError(
             f"OAuth coordinator socket not found at {settings.oauth_socket_path}"
         )
     except Exception as e:
-        raise OAuthConnectionError(f"Failed to connect to OAuth coordinator: {e}")
+        if use_tcp:
+            raise OAuthConnectionError(
+                f"Cannot connect to OAuth relay at {settings.oauth_tcp_host}:{settings.oauth_tcp_fallback_port}: {e}"
+            ) from e
+        else:
+            raise OAuthConnectionError(f"Failed to connect to OAuth coordinator: {e}") from e
 
     try:
         # Send registration message

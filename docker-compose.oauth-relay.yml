@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  relay:
+    build: .
+    container_name: poast-relay
+    environment:
+      # Required base settings
+      INBOUND_PATH_UUID: "your-uuid-here"
+      INBOUND_AUTH_TOKEN: "your-token-here"
+      GROQ_API_KEY: "your-groq-key-here"
+      GATEWAY_URL: "https://your-gateway.com"
+      GATEWAY_TOKEN: "your-gateway-token"
+      TARGET_SESSION_KEY: "your-session-key"
+
+      # OAuth relay settings
+      OAUTH_ENABLED: "true"
+      OAUTH_USE_TCP: "true"
+      OAUTH_TCP_BIND_ADDRESS: "0.0.0.0"
+      OAUTH_TCP_FALLBACK_PORT: "9999"
+      OAUTH_CALLBACK_PATH: "/oauth/callback"
+    ports:
+      - "8000:8000"  # FastAPI HTTP endpoint
+      - "9999:9999"  # OAuth TCP coordinator (optional, for host access)
+    networks:
+      - oauth-network
+
+  # Example client container
+  oauth-client:
+    image: python:3.11-slim
+    container_name: oauth-client-example
+    volumes:
+      - ./:/app
+    working_dir: /app
+    environment:
+      # Point to relay container
+      OAUTH_ENABLED: "true"
+      OAUTH_USE_TCP: "true"
+      OAUTH_TCP_HOST: "relay"
+      OAUTH_TCP_FALLBACK_PORT: "9999"
+    networks:
+      - oauth-network
+    depends_on:
+      - relay
+    command: sleep infinity  # Keep container running for manual testing
+
+networks:
+  oauth-network:
+    driver: bridge

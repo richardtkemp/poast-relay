@@ -393,10 +393,23 @@ curl http://localhost:8000/oauth/callback?code=test  # Should return 404 or 200
 
 - **Linux/macOS**: Unix socket (default, optimal performance)
 - **Windows**: TCP loopback (127.0.0.1:9999, automatic)
-- **Docker**: Set `OAUTH_USE_TCP=true` and use Docker network DNS
+- **Docker**: Set `OAUTH_USE_TCP=true` and configure network addresses
 
-### Docker Example
+## Docker Networking
 
+### Problem with Default Settings
+
+The OAuth relay defaults to Unix sockets on Linux, which cannot cross Docker container boundaries. The TCP mode exists but requires configuration for Docker networking.
+
+**Default behavior (broken in Docker):**
+- Coordinator binds to `127.0.0.1:9999` (only accepts local connections)
+- Client connects to `127.0.0.1:9999` (only works in same container)
+
+### Solution: Docker Network Configuration
+
+#### Scenario 1: Relay in Docker, Clients on Host
+
+**Relay container configuration:**
 ```yaml
 services:
   relay:
@@ -404,21 +417,116 @@ services:
     environment:
       OAUTH_ENABLED: "true"
       OAUTH_USE_TCP: "true"
+      OAUTH_TCP_BIND_ADDRESS: "0.0.0.0"  # Accept connections from any interface
       OAUTH_TCP_FALLBACK_PORT: "9999"
     ports:
-      - "9999:9999"
+      - "9999:9999"  # Expose to host
 ```
 
-Client code (in another container):
+**Client on host:**
+```bash
+# Client connects to localhost:9999 (mapped to container)
+OAUTH_ENABLED=true
+OAUTH_USE_TCP=true
+OAUTH_TCP_HOST=127.0.0.1  # or localhost
+OAUTH_TCP_FALLBACK_PORT=9999
+```
 
+#### Scenario 2: Relay and Clients in Separate Containers
+
+**Docker Compose:**
+```yaml
+services:
+  relay:
+    image: poast-relay:latest
+    environment:
+      OAUTH_ENABLED: "true"
+      OAUTH_USE_TCP: "true"
+      OAUTH_TCP_BIND_ADDRESS: "0.0.0.0"
+      OAUTH_TCP_FALLBACK_PORT: "9999"
+    networks:
+      - app-network
+
+  client-app:
+    image: your-client-app:latest
+    environment:
+      OAUTH_ENABLED: "true"
+      OAUTH_USE_TCP: "true"
+      OAUTH_TCP_HOST: "relay"  # Docker DNS resolves to relay container
+      OAUTH_TCP_FALLBACK_PORT: "9999"
+    networks:
+      - app-network
+    depends_on:
+      - relay
+
+networks:
+  app-network:
+```
+
+**Client Python code:**
 ```python
+from app.config import Settings
+from app.oauth.client import wait_for_code
+
 settings = Settings(
-    ...,
+    # ... other required settings ...
     oauth_enabled=True,
     oauth_use_tcp=True,
+    oauth_tcp_host="relay",  # Container hostname
     oauth_tcp_fallback_port=9999,
 )
+
+result = await wait_for_code(state=state, settings=settings)
 ```
+
+#### Scenario 3: Multiple Client Containers
+
+All clients connect to the same relay using its container hostname:
+
+```yaml
+services:
+  relay:
+    environment:
+      OAUTH_TCP_BIND_ADDRESS: "0.0.0.0"
+    networks:
+      - app-network
+
+  client1:
+    environment:
+      OAUTH_TCP_HOST: "relay"
+    networks:
+      - app-network
+
+  client2:
+    environment:
+      OAUTH_TCP_HOST: "relay"
+    networks:
+      - app-network
+```
+
+### Security Considerations
+
+**Bind address security:**
+- `0.0.0.0`: Accepts connections from any interface
+  - Safe in Docker with proper network isolation
+  - Only exposed within Docker network unless ports are published
+- `127.0.0.1`: Only accepts local connections
+  - Use for non-Docker deployments or single-container setups
+
+**Docker network isolation:**
+- Internal Docker networks provide network-level isolation
+- The coordinator is only accessible to containers on the same network
+- Publishing ports exposes to the host (use caution in production)
+
+### Configuration Reference
+
+| Setting | Description | Default | Docker Value |
+|---------|-------------|---------|--------------|
+| `OAUTH_ENABLED` | Enable OAuth relay | `false` | `true` |
+| `OAUTH_USE_TCP` | Force TCP mode | `false` | `true` |
+| `OAUTH_TCP_BIND_ADDRESS` | Coordinator bind address | `127.0.0.1` | `0.0.0.0` |
+| `OAUTH_TCP_HOST` | Client connection address | `127.0.0.1` | `relay` (container name) |
+| `OAUTH_TCP_FALLBACK_PORT` | TCP port | `9999` | `9999` |
 
 ## Feature Independence
 

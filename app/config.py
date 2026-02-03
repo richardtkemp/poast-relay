@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     oauth_default_timeout: float = 300.0
     oauth_log_unmatched: bool = True
     oauth_use_tcp: bool = False
+    oauth_tcp_bind_address: str = "127.0.0.1"
+    oauth_tcp_host: str = "127.0.0.1"
 
     class Config:
         env_file = ".env"
