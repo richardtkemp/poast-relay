@@ -1,6 +1,7 @@
 import asyncio
 import logging
-from fastapi import APIRouter, UploadFile, File, HTTPException, status, Depends
+from typing import Optional
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status, Depends
 from app.config import Settings
 from app.auth import verify_token, get_settings
 from app.services.transcription import transcribe_audio
@@ -29,15 +30,17 @@ def create_upload_router(settings: Settings) -> APIRouter:
     @router.post("/{path_uuid}/upload")
     async def upload_audio(
         path_uuid: str,
-        file: UploadFile = File(...),
+        file: Optional[UploadFile] = File(None),
+        text: Optional[str] = Form(None),
         _: None = Depends(verify_token),
     ):
         """
-        Upload and transcribe audio file.
+        Upload and transcribe audio file OR submit text directly.
 
         Args:
             path_uuid: Path UUID from URL (validated against config)
-            file: Audio file to transcribe
+            file: Audio file to transcribe (optional if text is provided)
+            text: Plain text to send directly (optional if file is provided)
             _: Authentication dependency (verify_token)
 
         Returns:
@@ -45,7 +48,7 @@ def create_upload_router(settings: Settings) -> APIRouter:
 
         Raises:
             404: Invalid path UUID or (ghost mode + invalid token)
-            400: Invalid file or format
+            400: Invalid file or format, or both/neither file and text provided
             413: File too large
             502: Transcription or gateway error
         """
@@ -56,13 +59,36 @@ def create_upload_router(settings: Settings) -> APIRouter:
                 detail="Not found",
             )
 
-        # Validate file is present
-        if not file or not file.filename:
+        # Validate that exactly one of file or text is provided
+        if (file is None or not file.filename) and (text is None or not text.strip()):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No file provided",
+                detail="Either 'file' or 'text' must be provided",
+            )
+        
+        if file and file.filename and text and text.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only one of 'file' or 'text' should be provided, not both",
             )
 
+        # Handle text input (direct gateway send, no transcription)
+        if text and text.strip():
+            async def _process_text(text_content: str, app_settings: Settings):
+                try:
+                    logger.info(f"Sending text directly to gateway (length: {len(text_content)} chars)")
+                    gateway_response = await send_to_gateway(text_content, app_settings)
+                    if gateway_response.get("status") != "sent":
+                        logger.error(f"Gateway error: {gateway_response}")
+                    else:
+                        logger.info(f"Successfully relayed text to gateway")
+                except Exception as e:
+                    logger.error(f"Background processing failed for text: {str(e)}")
+
+            asyncio.create_task(_process_text(text.strip(), settings))
+            return {"status": "accepted", "type": "text"}
+
+        # Handle audio file input (existing flow with transcription)
         # Get file extension
         filename_parts = file.filename.rsplit(".", 1)
         if len(filename_parts) != 2:
@@ -127,6 +153,6 @@ def create_upload_router(settings: Settings) -> APIRouter:
 
         asyncio.create_task(_process_audio(audio_bytes, file.filename, settings))
 
-        return {"status": "accepted"}
+        return {"status": "accepted", "type": "audio"}
 
     return router
