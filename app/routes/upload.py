@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from fastapi import APIRouter, UploadFile, File, HTTPException, status, Depends
 from app.config import Settings
@@ -110,32 +111,22 @@ def create_upload_router(settings: Settings) -> APIRouter:
                 detail="File is empty",
             )
 
-        try:
-            # Transcribe audio
-            logger.info(f"Transcribing file: {file.filename}")
-            transcription = await transcribe_audio(audio_bytes, file.filename, settings)
+        # Process transcription and gateway send in background
+        async def _process_audio(audio_data: bytes, filename: str, app_settings: Settings):
+            try:
+                logger.info(f"Transcribing file: {filename}")
+                transcription = await transcribe_audio(audio_data, filename, app_settings)
+                logger.info(f"Sending transcription to gateway")
+                gateway_response = await send_to_gateway(transcription, app_settings)
+                if gateway_response.get("status") != "sent":
+                    logger.error(f"Gateway error: {gateway_response}")
+                else:
+                    logger.info(f"Successfully processed and relayed: {filename}")
+            except Exception as e:
+                logger.error(f"Background processing failed for {filename}: {str(e)}")
 
-            # Send to gateway
-            logger.info(f"Sending transcription to gateway")
-            gateway_response = await send_to_gateway(transcription, settings)
+        asyncio.create_task(_process_audio(audio_bytes, file.filename, settings))
 
-            # Check if gateway send was successful
-            if gateway_response.get("status") != "sent":
-                logger.error(f"Gateway error: {gateway_response}")
-                raise HTTPException(
-                    status_code=status.HTTP_502_BAD_GATEWAY,
-                    detail=f"Failed to relay to gateway: {gateway_response.get('detail', 'Unknown error')}",
-                )
-
-            return {"status": "sent", "text": transcription}
-
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"Error processing upload: {str(e)}")
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"Error processing request: {str(e)}",
-            )
+        return {"status": "accepted"}
 
     return router
