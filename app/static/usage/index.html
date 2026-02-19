@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Token Usage Dashboard</title>
+  <link rel="stylesheet" href="/usage/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/relativeTime.js"></script>
+</head>
+<body>
+  <h1>Token Usage Dashboard</h1>
+
+  <div class="summary-cards">
+    <div class="card"><div class="label">Total Tokens</div><div class="value" id="stat-tokens">—</div></div>
+    <div class="card"><div class="label">Total Cost</div><div class="value" id="stat-cost">—</div></div>
+    <div class="card"><div class="label">Cache Hit Rate</div><div class="value" id="stat-cache">—</div></div>
+    <div class="card"><div class="label">Turns</div><div class="value" id="stat-turns">—</div></div>
+  </div>
+
+  <div class="filters">
+    <div>
+      <label>Agent</label>
+      <select id="filter-agent">
+        <option value="">All</option>
+      </select>
+    </div>
+    <div>
+      <label>Session</label>
+      <select id="filter-session">
+        <option value="">All (aggregate)</option>
+      </select>
+    </div>
+    <div>
+      <label>Range</label>
+      <div class="time-presets">
+        <button data-hours="1">1h</button>
+        <button data-hours="6">6h</button>
+        <button data-hours="24" class="active">24h</button>
+        <button data-hours="168">7d</button>
+        <button data-hours="720">30d</button>
+      </div>
+    </div>
+    <div class="metric-toggle">
+      <button id="toggle-tokens" class="active">Tokens</button>
+      <button id="toggle-cost">Cost</button>
+    </div>
+  </div>
+
+  <div class="charts">
+    <div class="chart-container">
+      <h2>Usage Over Time</h2>
+      <canvas id="chart-usage"></canvas>
+    </div>
+    <div class="chart-container">
+      <h2>Cost Over Time</h2>
+      <canvas id="chart-cost"></canvas>
+    </div>
+    <div class="chart-container">
+      <h2>Cache Efficiency</h2>
+      <canvas id="chart-cache"></canvas>
+    </div>
+    <div class="chart-container">
+      <h2>Session Comparison (Top 20 by Cost)</h2>
+      <canvas id="chart-sessions"></canvas>
+    </div>
+  </div>
+
+  <script src="/usage/app.js"></script>
+</body>
+</html>

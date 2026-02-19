@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     gateway_timeout_seconds: int = 10
     gateway_retry_attempts: int = 3
 
+    # Token Usage Dashboard
+    openclaw_base_dir: str = "~/git/openclaw"
+
     # OAuth Relay Configuration (all optional with defaults)
     oauth_enabled: bool = False
     oauth_callback_path: str = "/oauth/callback"

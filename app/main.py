@@ -3,6 +3,7 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException, status
 from app.config import Settings
 from app.routes.upload import create_upload_router
+from app.routes.usage import create_usage_router
 from app.oauth.coordinator import OAuthCoordinator, set_coordinator
 from app.routes.oauth import create_oauth_router
 
@@ -34,6 +35,10 @@ if settings.oauth_enabled:
 # Register upload router
 upload_router = create_upload_router(settings)
 app.include_router(upload_router)
+
+# Register usage dashboard router
+usage_router = create_usage_router(settings)
+app.include_router(usage_router)
 
 # Register OAuth router if enabled
 if settings.oauth_enabled and oauth_coordinator:
