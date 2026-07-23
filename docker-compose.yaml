@@ -3,7 +3,7 @@ services:
   poast-relay:
     build: .
     container_name: poast-relay
-    restart: unless-stopped
+    restart: always
     environment:
       - INBOUND_PATH_UUID=${INBOUND_PATH_UUID}
       - INBOUND_AUTH_TOKEN=${INBOUND_AUTH_TOKEN}
