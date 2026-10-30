@@ -26,8 +26,15 @@ services:
       - OAUTH_DEFAULT_TIMEOUT=${OAUTH_DEFAULT_TIMEOUT:-300.0}
       # Token Usage Dashboard
       - OPENCLAW_BASE_DIR=/openclaw
+      # #2666: python requests/httpx would otherwise use the image's certifi bundle (compromised roots);
+      # point them at the host store mounted above (not a file bind: Coolify would copy the file into its DB and write it back on deploy)
+      - REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+      - SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
     volumes:
       - /home/rich/git/openclaw:/openclaw:ro
+      # #2666 (eMudhra CA incident): trust the host's clean CA store, read-only, not the image's
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - /usr/share/ca-certificates:/usr/share/ca-certificates:ro
     ports:
       - "9999:9999"
     labels:
