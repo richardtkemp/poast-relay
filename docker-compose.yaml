@@ -36,7 +36,11 @@ services:
       - /etc/ssl/certs:/etc/ssl/certs:ro
       - /usr/share/ca-certificates:/usr/share/ca-certificates:ro
     ports:
-      - "9999:9999"
+      # Loopback only (#2693): the coordinator hands out OAuth auth codes to whoever
+      # registers the state. Every client runs on the NUC host and dials
+      # localhost:9999. Containers reach it as poast-relay:9999 on the traefik
+      # network; traefik reaches HTTP 8000 the same way, so 8000 is not published.
+      - "127.0.0.1:9999:9999"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.poast-relay.rule=Host(`poast.richardkemp.uk`)"
